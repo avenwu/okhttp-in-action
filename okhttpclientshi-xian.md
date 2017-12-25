@@ -8,7 +8,7 @@
 
 1. 我们首先实例化了一个`OkHttpClient`，如果有多个请求需要发送，这个类将会做一个单例来复用；
 2. 同时我们会构造一个`Request`实例，用于传入我们的请求参数；
-3. 最后通过`OkHttpCLient`实例，`new`出一个`Call`, 并执行(或者丢入异步队列)。
+3. 最后通过`OkHttpClient`实例，`new`出一个`Call`, 并执行(或者丢入异步队列)。
 
 ```java
 OkHttpClient client = new OkHttpClient();
