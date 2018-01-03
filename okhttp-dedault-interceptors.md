@@ -17,7 +17,7 @@
  private static final int MAX_FOLLOW_UPS = 20;
 ```
 
-实现重试的主要思路是无线循环配合计步器，还有一些错误情况，会向上抛异常；
+实现重试的主要思路是`无限循环`+`计步器`，还有一些错误情况，会向上抛异常；
 
 ```java
 int followUpCount = 0;

@@ -34,11 +34,11 @@ Jake是位多产的大神,感受下他的全年Github提交记录：
 
 ![jakewharton-commits](http://7u2jir.com1.z0.glb.clouddn.com/img//jakewharton-commits.png)
 
-同时开发了其他诸多项目：
+除此之外，Jake也开发了其他一些知名项目：
 
 ![jakewharton-repo](http://7u2jir.com1.z0.glb.clouddn.com/img//jakewharton-repo.png)
 
-## OkHttp定位
+## 功能定位
 
 OkHttp用于Android/Java程序进行Http、Http/2网络通信，因此可以在基于Java的项目中使用。（Android 2.3+, Java 1.7+）
 
