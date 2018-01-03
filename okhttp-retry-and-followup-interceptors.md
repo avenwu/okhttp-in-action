@@ -188,7 +188,7 @@ import static okhttp3.internal.http.StatusLine.HTTP_TEMP_REDIRECT;
 ```
 绝大部分状态码来自`java.net.HttpURLConnection`,也有两个是定义在`okhttp3.internal.http.StatusLine`里面。
 
-* HTTP_CLIENT_TIMEOUT|407
+* HTTP_UNAUTHORIZED|407
 
 ```java
 /**
