@@ -221,4 +221,103 @@ case HTTP_PROXY_AUTH:
 public static final int HTTP_UNAUTHORIZED = 401;
 ```
 
-* 
+* HTTP_PERM_REDIRECT|308
+
+重定向这一块，有永久重定向308和临时重定向307,处理是一致的：
+首先识别是不是GET或者HEAD请求，不是的话返回null。
+
+```java
+case HTTP_PERM_REDIRECT:
+case HTTP_TEMP_REDIRECT:
+  // "If the 307 or 308 status code is received in response to a request other than GET
+  // or HEAD, the user agent MUST NOT automatically redirect the request"
+  if (!method.equals("GET") && !method.equals("HEAD")) {
+    return null;
+  }
+ // fall-through
+```
+
+```java
+/** Numeric status code, 307: Temporary Redirect. */
+public static final int HTTP_TEMP_REDIRECT = 307;
+public static final int HTTP_PERM_REDIRECT = 308;
+public static final int HTTP_CONTINUE = 100;
+```
+
+* HTTP_MULT_CHOICE|300
+
+包括前面的307，308以及300，301，302，303都贯串统一处理：
+如果配置允许重定向，则根据header中的`Location`字段获取新的目标url，构造新的Request。
+
+```java
+  // fall-through
+case HTTP_MULT_CHOICE:
+case HTTP_MOVED_PERM:
+case HTTP_MOVED_TEMP:
+case HTTP_SEE_OTHER:
+  // Does the client allow redirects?
+  if (!client.followRedirects()) return null;
+
+  String location = userResponse.header("Location");
+  if (location == null) return null;
+  HttpUrl url = userResponse.request().url().resolve(location);
+
+  // Don't follow redirects to unsupported protocols.
+  if (url == null) return null;
+
+  // If configured, don't follow redirects between SSL and non-SSL.
+  boolean sameScheme = url.scheme().equals(userResponse.request().url().scheme());
+  if (!sameScheme && !client.followSslRedirects()) return null;
+
+  // Most redirects don't include a request body.
+  Request.Builder requestBuilder = userResponse.request().newBuilder();
+  if (HttpMethod.permitsRequestBody(method)) {
+    final boolean maintainBody = HttpMethod.redirectsWithBody(method);
+    if (HttpMethod.redirectsToGet(method)) {
+      requestBuilder.method("GET", null);
+    } else {
+      RequestBody requestBody = maintainBody ? userResponse.request().body() : null;
+      requestBuilder.method(method, requestBody);
+    }
+    if (!maintainBody) {
+      requestBuilder.removeHeader("Transfer-Encoding");
+      requestBuilder.removeHeader("Content-Length");
+      requestBuilder.removeHeader("Content-Type");
+    }
+  }
+
+  // When redirecting across hosts, drop all authentication headers. This
+  // is potentially annoying to the application layer since they have no
+  // way to retain them.
+  if (!sameConnection(userResponse, url)) {
+    requestBuilder.removeHeader("Authorization");
+  }
+
+  return requestBuilder.url(url).build();
+```
+
+* HTTP_CLIENT_TIMEOUT|408
+最后一种是408,请求超时，从注释上看说是实际很少用到408，不过HAProxy可能会返回这个码。这种情况不需要更换url，直接使用原来的request即可。
+
+```java
+case HTTP_CLIENT_TIMEOUT:
+  // 408's are rare in practice, but some servers like HAProxy use this response code. The
+  // spec says that we may repeat the request without modifications. Modern browsers also
+  // repeat the request (even non-idempotent ones.)
+  if (!client.retryOnConnectionFailure()) {
+    // The application layer has directed us not to retry the request.
+    return null;
+  }
+
+  if (userResponse.request().body() instanceof UnrepeatableRequestBody) {
+    return null;
+  }
+
+  if (userResponse.priorResponse() != null
+      && userResponse.priorResponse().code() == HTTP_CLIENT_TIMEOUT) {
+    // We attempted to retry and got another timeout. Give up.
+    return null;
+  }
+
+  return userResponse.request();
+```
