@@ -167,3 +167,58 @@ if (followUp.body() instanceof UnrepeatableRequestBody) {
       + " didn't close its backing stream. Bad interceptor?");
 }
 ```
+
+
+## 重试/重定向状态码
+
+我们已经看了很多重试的逻辑判断，那么到底哪些情况会触发链式重试机制呢？这个需要需要结合HTTP的状态码来看。HTTP的相关协议可以查看：[https://www.w3.org/Protocols/](https://www.w3.org/Protocols/)
+
+下面我们逐一分析`OkHttp`识别的几种常见码：
+
+```java
+import static java.net.HttpURLConnection.HTTP_CLIENT_TIMEOUT;
+import static java.net.HttpURLConnection.HTTP_MOVED_PERM;
+import static java.net.HttpURLConnection.HTTP_MOVED_TEMP;
+import static java.net.HttpURLConnection.HTTP_MULT_CHOICE;
+import static java.net.HttpURLConnection.HTTP_CLIENT_TIMEOUT;
+import static java.net.HttpURLConnection.HTTP_SEE_OTHER;
+import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
+import static okhttp3.internal.http.StatusLine.HTTP_PERM_REDIRECT;
+import static okhttp3.internal.http.StatusLine.HTTP_TEMP_REDIRECT;
+```
+绝大部分状态码来自`java.net.HttpURLConnection`,也有两个是定义在`okhttp3.internal.http.StatusLine`里面。
+
+* HTTP_CLIENT_TIMEOUT|407
+
+```java
+/**
+ * HTTP Status-Code 407: Proxy Authentication Required.
+ */
+public static final int HTTP_PROXY_AUTH = 407;
+```
+
+注释写的很明白了，407是server要求权限，属于鉴权类的。
+
+```java
+case HTTP_PROXY_AUTH:
+  Proxy selectedProxy = route != null
+      ? route.proxy()
+      : client.proxy();
+  if (selectedProxy.type() != Proxy.Type.HTTP) {
+    throw new ProtocolException("Received HTTP_PROXY_AUTH (407) code while not using proxy");
+  }
+  return client.proxyAuthenticator().authenticate(route, userResponse);
+```
+
+* HTTP_UNAUTHORIZED|401
+
+401是鉴权失败，也就是即使客户端的权限不足。
+
+```java
+/**
+ * HTTP Status-Code 401: Unauthorized.
+ */
+public static final int HTTP_UNAUTHORIZED = 401;
+```
+
+* 
