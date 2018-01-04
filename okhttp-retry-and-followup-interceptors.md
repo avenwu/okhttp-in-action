@@ -6,8 +6,7 @@
 
 ## RetryAndFollowUpInterceptor
 
-重试/重定向拦截器，是第一个加入列表的拦截器，用于自动处理重定向和请求重试，如果一个请求被取消了会向上抛出IO异常。
-其默认重试次数为`20`,这个次数和大多数程序的一致。
+重试/重定向拦截器，是第一个加入列表的拦截器，用于自动处理重定向和请求重试，如果一个请求被取消了会向上抛出IO异常。其默认重试次数为`20`,这个次数和大多数程序的一致。
 
 ```java
  /**
@@ -59,19 +58,19 @@ try {
 }
 ```
 
-`Chain`和`Interceptor`的关系，如下：
+在整个链式调用拦截的过程中，`Chain`和`Interceptor`的关系，如下：
 
 RealCall, RealInterceptorChain:
 
-`chain.proceed(originalRequest)`=>`chain#proceed`=>`next Interceptor（RetryAndFollowUpInterceptor）`=>`realChain.proceed(request, streamAllocation, null, null)`=>`next Interceptor(BridgeInterceptor)`=>
+`chain.proceed(originalRequest)` => `next Interceptor（RetryAndFollowUpInterceptor）` => `realChain.proceed(request, streamAllocation, null, null)` => `next Interceptor(BridgeInterceptor)` =>
 
 ## 上抛异常分析
 
-科学来讲，重试器不会对所有情况进行重试，因此针对有些既定情况会直接抛出异常终端重试机制；那么都有哪些中断情况呢，接下来注意看一下几个关键异常的上抛逻辑。
+科学来讲，重试器不会对所有情况进行重试，因此针对有些既定情况会直接抛出异常，中断重试机制；那么都有哪些中断情况呢，接下来逐一分析几个关键异常的上抛逻辑。
 
 * RouteException
 
-在chain执行proceed的时候，会对其加catch，第一个捕获判断即使`RouteException`，代表链路异常。
+在chain执行proceed的时候，会对其加catch，第一个捕获判断即为`RouteException`，代表链路异常。
 
 ```java
 } catch (RouteException e) {
@@ -183,13 +182,12 @@ import static java.net.HttpURLConnection.HTTP_MULT_CHOICE;
 import static java.net.HttpURLConnection.HTTP_PROXY_AUTH;
 import static java.net.HttpURLConnection.HTTP_SEE_OTHER;
 import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
-import static okhttp3.internal.Util.closeQuietly;
 import static okhttp3.internal.http.StatusLine.HTTP_PERM_REDIRECT;
 import static okhttp3.internal.http.StatusLine.HTTP_TEMP_REDIRECT
 ```
 绝大部分状态码来自`java.net.HttpURLConnection`,也有两个是定义在`okhttp3.internal.http.StatusLine`里面。
 
-* HTTP_PROXY_AUTH|407
+* HTTP_PROXY_AUTH | 407
 
 ```java
 /**
@@ -211,9 +209,9 @@ case HTTP_PROXY_AUTH:
   return client.proxyAuthenticator().authenticate(route, userResponse);
 ```
 
-* HTTP_UNAUTHORIZED|401
+* HTTP_UNAUTHORIZED | 401
 
-401是鉴权失败，也就是即使客户端的权限不足。
+401是鉴权失败，也就是客户端的权限不足。
 
 ```java
 /**
@@ -222,10 +220,9 @@ case HTTP_PROXY_AUTH:
 public static final int HTTP_UNAUTHORIZED = 401;
 ```
 
-* HTTP_PERM_REDIRECT|308
+* HTTP_PERM_REDIRECT | 308
 
-重定向这一块，有永久重定向308和临时重定向307,处理是一致的：
-首先识别是不是GET或者HEAD请求，不是的话返回null。
+重定向这一块，有永久重定向308和临时重定向307，处理是一致的，只有GET/HEAD请求允许重定向：
 
 ```java
 case HTTP_PERM_REDIRECT:
@@ -245,9 +242,9 @@ public static final int HTTP_PERM_REDIRECT = 308;
 public static final int HTTP_CONTINUE = 100;
 ```
 
-* HTTP_MULT_CHOICE|300
+* HTTP_MULT_CHOICE | 300
 
-包括前面的307，308以及300，301，302，303都贯串统一处理：
+包括前面的307，308以及300，301，302，303都贯穿统一处理：
 如果配置允许重定向，则根据header中的`Location`字段获取新的目标url，构造新的Request。
 
 ```java
@@ -297,7 +294,8 @@ case HTTP_SEE_OTHER:
   return requestBuilder.url(url).build();
 ```
 
-* HTTP_CLIENT_TIMEOUT|408
+* HTTP_CLIENT_TIMEOUT | 408
+
 最后一种是408,请求超时，从注释上看说是实际很少用到408，不过HAProxy可能会返回这个码。这种情况不需要更换url，直接使用原来的request即可。
 
 ```java
