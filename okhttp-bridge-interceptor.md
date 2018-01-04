@@ -19,3 +19,4 @@ public final class BridgeInterceptor implements Interceptor
 
 总结一下，起作用就是桥接业务层逻辑到网络层代码。将根据开发者的请求内容，构造一个网络请求，然后调用proceed去请求网络，最后从网络响应构造一个向上传递的用户响应体。
 如此，我们姑且称`BridgeInterceptor`为`桥接拦截器`。
+
