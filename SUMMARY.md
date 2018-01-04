@@ -8,4 +8,5 @@
 * [5. 链式拦截器](okhttp-interceptor-chain.md)
 * [6. 重试拦截器分析](okhttp-retry-and-followup-interceptors.md)
 * [7. 桥接拦截器分析](okhttp-bridge-interceptor.md)
+* [8. 缓存拦截器分析](okhttp-cacheinterceptor.md)
 
