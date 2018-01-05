@@ -20,7 +20,11 @@ public final class BridgeInterceptor implements Interceptor
 总结一下，起作用就是桥接业务层逻辑到网络层代码。将根据开发者的请求内容，构造一个网络请求，然后调用proceed去请求网络，最后从网络响应构造一个向上传递的用户响应体。
 如此，我们姑且称`BridgeInterceptor`为`桥接拦截器`。
 
-拦截器开始处理后，立刻够早了一份新的Request对象，初始化的赋值和原有Request一致。
+
+![flow](http://7u2jir.com1.z0.glb.clouddn.com/img/BridgeInterceptor-flow.png)
+
+
+拦截器开始处理后，立刻构造了一份新的Request对象，初始化的赋值和原有Request一致。
 
 ```java
 Request userRequest = chain.request();
@@ -33,7 +37,7 @@ Request.Builder requestBuilder = userRequest.newBuilder();
 >
 桥接器所对应的Request是用于网络请求的，克隆一份后，可以对其做新增，删除等操作，而不会影响到开发者上层构造的实例，者可以保证内部逻辑相对独立，表现为一个黑盒状态，上层不需要关注这些header的变更，只需关注业务层的一些参数。
 
-## 相关请求/响应Header
+## Header
 
 整个`桥接拦截器`的核心逻辑在于对网络请求`Request`的构造，涉及一些header的添加与删除操作。关于完整的Http协议的头部定义，可以查阅[RFC7231#section-5](https://tools.ietf.org/html/rfc7231#section-5) 。协议的定义内容比较多，而且是因为，简单起见也可以参考[维基百科](https://zh.wikipedia.org/wiki/HTTP%E5%A4%B4%E5%AD%97%E6%AE%B5)
 
