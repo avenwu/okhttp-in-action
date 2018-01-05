@@ -2,7 +2,7 @@
 
 ## 前言
 
-前文分析过程中，我们知道`BridgeInterceptor`桥接拦截器调用过程中，将触发缓存拦截逻辑`CahceInterceptor`，本文一起缓存拦截器的实现逻辑。
+前文分析过程中，我们知道`BridgeInterceptor`桥接拦截器调用过程中，将触发缓存拦截`CahceInterceptor`，本文一起缓存拦截器的实现逻辑。
 
 ## CacheInterceptor
 
@@ -11,9 +11,11 @@
 ```java
 interceptors.add(new CacheInterceptor(client.internalCache()));
 ```
-通过查阅拦截器的构造，可以知道，实际上缓存默认是关闭的，也就是说开发主可选着性配置缓存，配置的时候就可以指定缓存目录，不配置则不缓存。
+通过查阅拦截器的构造，可以知道，实际上缓存默认是关闭的，也就是说开发者可选着性配置缓存，配置的时候就可以指定缓存目录，不配置则不缓存。
 
-查看`OkHttpClient#Builder`会发现有两个同名方法可以设置cache，两者接受的参数类型不同。实际上我们应当使用的是`public Builder cache(@Nullable Cache cache)`:
+查看`OkHttpClient#Builder`会发现有两个类似方法可以设置cache，两者接受的参数类型不同。实际上我们应当使用的是`public Builder cache(@Nullable Cache cache)`:
+
+![cache](http://7u2jir.com1.z0.glb.clouddn.com/img/set-cache.png)
 
 ```java
 /** Sets the response cache to be used to read and write cached responses. */
@@ -42,8 +44,9 @@ new OkHttpClient.Builder()
 
 接下来看看拦截器里面的具体逻辑。
 
-![CacheInterceptor-proceed-flow](http://7u2jir.com1.z0.glb.clouddn.com/img/CacheInterceptor-proceed-flow.png)
+![CacheInterceptor-proceed-flow](http://7u2jir.com1.z0.glb.clouddn.com/img/CacheInterceptor-flow.png)
 
+### 缓存获取
 首先根据请求尝试获取缓存的响应。
 
 ```java
@@ -59,7 +62,7 @@ public static String key(HttpUrl url) {
   return ByteString.encodeUtf8(url.toString()).md5().hex();
 }
 ```
-
+### CacheStrategy构造
 得到缓存中的Response（可能为空）后，结合Request，构造一个缓存策略的辅助类`CacheStrategy`。这个类主要是根据Request的各种配置，比如header信息，和缓存配置信息来构造的，因此可以看到里面有很对对Request的判断。
 
 ```java
@@ -149,6 +152,8 @@ private CacheStrategy getCandidate() {
 ```
 上面的逻辑比较多，可以自行阅读。接着看拦截器中的逻辑。
 
+### 缓存判定
+
 ```java
 CacheStrategy strategy = new CacheStrategy.Factory(now, chain.request(), cacheCandidate).get();
 Request networkRequest = strategy.networkRequest;
@@ -183,6 +188,8 @@ if (networkRequest == null) {
 }
 ```
 
+### 网路请求
+
 网络请求Request不为空，继续走下一个拦截器的业务逻辑去联网请求。
 
 ```java
@@ -198,6 +205,8 @@ try {
 ```
 
 网络请求回来后，可能出现304 `HTTP_NOT_MODIFIED`，那么使用不为空的缓存结果。
+
+### 缓存更新
 
 最后将缓存response和网络response构造为一个新的response，并且将数据缓存，清除非GET请求的缓存。
 
