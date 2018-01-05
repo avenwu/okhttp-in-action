@@ -11,9 +11,9 @@
 ```java
 interceptors.add(new CacheInterceptor(client.internalCache()));
 ```
-通过查阅拦截器的构造，可以知道，实际上缓存默认是未开启的，也就是所开发主需要主动配置缓存才会生效。
+通过查阅拦截器的构造，可以知道，实际上缓存默认是关闭的，也就是说开发主可选着性配置缓存，配置的时候就可以指定缓存目录，不配置则不缓存。
 
-查看`OkHttpClient`的接口会发现有两个同名方法可以设置cache，不过接受的参数类型不同，实际上我们应当使用的是`public Builder cache(@Nullable Cache cache)`:
+查看`OkHttpClient#Builder`会发现有两个同名方法可以设置cache，两者接受的参数类型不同。实际上我们应当使用的是`public Builder cache(@Nullable Cache cache)`:
 
 ```java
 /** Sets the response cache to be used to read and write cached responses. */
@@ -29,3 +29,5 @@ public Builder cache(@Nullable Cache cache) {
   return this;
 }
 ```
+
+
