@@ -1,4 +1,4 @@
-![img](http://7u2jir.com1.z0.glb.clouddn.com/img/2018-01-04-01.png)
+![img](http://7u2jir.com1.z0.glb.clouddn.com/img/2018-01-05-01.png)
 
 ## 前言
 
@@ -40,7 +40,11 @@ new OkHttpClient.Builder()
 
 ## 缓存检测逻辑
 
-接下来看看拦截器里面的具体逻辑。首先根据请求尝试获取缓存的响应。
+接下来看看拦截器里面的具体逻辑。
+
+![CacheInterceptor-proceed-flow](http://7u2jir.com1.z0.glb.clouddn.com/img/CacheInterceptor-proceed-flow.png)
+
+首先根据请求尝试获取缓存的响应。
 
 ```java
 Response cacheCandidate = cache != null
